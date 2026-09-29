@@ -1,0 +1,27 @@
+# Personal data: never commit
+# Snapshots of real browser bookmarks
+backups/
+# Tidy-up plans generated from real bookmarks
+plans/
+*.bookmarks.json
+bookmarks-*.html
+
+# Build / packaging artifacts
+*.zip
+*.crx
+# Extension signing key: keep it secret
+*.pem
+dist/
+
+# OS / editor noise
+.DS_Store
+__MACOSX/
+._*
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Env / secrets (none are used today; just in case)
+.env
+.env.*

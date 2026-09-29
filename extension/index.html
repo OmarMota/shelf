@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Bookmarks</title>
+    <link rel="icon" href="icons/icon48.png" />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Shelf</span>
+      </div>
+      <label class="search">
+        <span class="search-ico" data-icon="search"></span>
+        <input id="search" type="search" placeholder="Search bookmarks" autocomplete="off" spellcheck="false" />
+        <kbd>/</kbd>
+      </label>
+      <nav id="tree" aria-label="Folders"></nav>
+      <div class="side-foot">
+        <button id="btn-settings" class="icon-btn" title="Settings" data-icon="gear"></button>
+        <button id="btn-theme" class="icon-btn" title="Theme: auto" data-icon="theme"></button>
+        <label class="size" title="Card size">
+          <input id="size" type="range" min="150" max="340" step="10" />
+        </label>
+      </div>
+    </aside>
+
+    <main id="main">
+      <header id="topbar">
+        <button id="btn-back" class="icon-btn" title="Back to parent folder" data-icon="back"></button>
+        <div class="heading">
+          <nav id="crumbs" aria-label="Path"></nav>
+          <div id="count"></div>
+        </div>
+        <div class="actions">
+          <button id="btn-view" class="icon-btn" title="Show as a gallery"></button>
+          <button id="btn-tidy" class="btn ghost" title="Work out which folder each loose bookmark belongs in">
+            <span data-icon="sparkle"></span><span>Tidy up</span>
+          </button>
+          <button id="btn-review" class="btn ghost" title="Find broken links, duplicates, and bookmarks you saved long ago and never open">
+            <span data-icon="heart"></span><span>Review</span>
+          </button>
+          <button id="btn-capture" class="btn ghost" title="Open each bookmark here in a preview and photograph it">
+            <span data-icon="camera"></span><span>Capture previews</span>
+          </button>
+          <button id="btn-files" class="btn ghost" title="Bring in your saved posts from X and Instagram, or files from this Mac. They go to My Shelf."><span data-icon="download"></span><span>Import</span></button>
+          <button id="btn-new-folder" class="btn ghost"><span data-icon="folderPlus"></span><span>Folder</span></button>
+          <button id="btn-new-bm" class="btn primary"><span data-icon="plus"></span><span>Bookmark</span></button>
+        </div>
+      </header>
+      <div id="canvas" tabindex="-1">
+        <div id="grid"></div>
+        <div id="empty" hidden>
+          <div class="empty-art" aria-hidden="true"><i></i><i></i><i></i></div>
+          <strong id="empty-title"></strong>
+          <span id="empty-sub"></span>
+        </div>
+      </div>
+    </main>
+
+    <div id="layer"></div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

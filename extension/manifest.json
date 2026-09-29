@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Shelf — Spatial Bookmarks",
+  "short_name": "Shelf",
+  "version": "0.2.0",
+  "description": "A calm, spatial canvas for your bookmarks: live previews, drag between folders, edit in place.",
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "permissions": [
+    "bookmarks",
+    "history",
+    "clipboardWrite",
+    "tabGroups",
+    "favicon",
+    "storage",
+    "unlimitedStorage",
+    "tabs",
+    "webNavigation",
+    "scripting",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Open Shelf" },
+  "chrome_url_overrides": { "bookmarks": "index.html" },
+  "commands": {
+    "open-shelf": {
+      "suggested_key": { "default": "Alt+Shift+B" },
+      "description": "Open Shelf"
+    }
+  }
+}
