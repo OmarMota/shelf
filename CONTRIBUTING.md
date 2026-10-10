@@ -44,13 +44,16 @@ URLs you don't want to make public.
 
 ## Packaging a release
 
-The zip attached to each GitHub release is the `extension/` folder, zipped with `manifest.json` at its
-root and without macOS metadata:
+The zip attached to each GitHub release is the committed `extension/` folder, zipped with
+`manifest.json` at its root. Build it from git, not from your working folder, so nothing local (macOS
+metadata, a personal `key` in your manifest) ends up in it:
 
 ```bash
-mkdir -p dist && cd extension
-zip -r -X ../dist/shelf-v$(node -p "require('./manifest.json').version").zip . -x '.*' -x '*/.*'
+mkdir -p dist
+git archive --format=zip -o dist/shelf-v$(node -p "require('./extension/manifest.json').version").zip HEAD:extension
 ```
 
-Bump `version` in `extension/manifest.json` first. The same zip is what the Chrome Web Store expects.
-`dist/` is gitignored: upload the file to the release, don't commit it.
+Bump `version` in `extension/manifest.json` and commit first. The same zip is what the Chrome Web Store
+expects. `dist/` is gitignored: upload the file to the release, don't commit it.
+
+The manifest must not contain a `key`: it would give every install the same extension ID.
