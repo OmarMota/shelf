@@ -144,8 +144,10 @@ extension; they are not part of the browser's bookmark file or its backups.
 tick it and press **Delete**, and the usual Undo brings it back.
 
 - **Broken links**: asks each site for the page (no cookies) and sorts the answers: *Gone* (404/410,
-  ticked for you), *No answer* (dead domain), *Moved to another site* (✓ updates the address). Logins and
-  bot walls count as "couldn't tell" and are left alone. Each row has a Wayback Machine lookup.
+  ticked for you) and *No answer* (dead domain). Logins and bot walls count as "couldn't tell" and are
+  left alone. Each row has a Wayback Machine lookup.
+- **Updated links**: from the same check, the pages that still work but now live at another address.
+  Nothing is deleted here: **Update** saves the new address in each ticked bookmark, with one Undo.
 - **Duplicates**: same page ignoring `www`, `#…`, trailing `/` and tracking tags. Keeps the copy with
   your note, else the oldest.
 - **Not opened**: saved more than 3 / 6 / 12 / 24 months ago and not opened in the last three months
@@ -158,7 +160,7 @@ tick it and press **Delete**, and the usual Undo brings it back.
 **Move**, you can untick anything, and one **Undo** reverses the whole batch (including folders it
 created). A backup is saved before every run. There is no API key anywhere:
 
-- **Sort on this Mac**: compares each loose bookmark's title, site, description and caption with what
+- **Sort on this Mac** (or "on this computer" elsewhere): compares each loose bookmark's title, site, description and caption with what
   every folder already holds. Instant and private, but it can only use folders you already have.
 - **Sort with Claude**, in three steps: **Copy prompt** puts a ready-made prompt on your clipboard with
   the bookmarks inside it; paste it into Claude (claude.ai or Claude Code), which answers with a plan;

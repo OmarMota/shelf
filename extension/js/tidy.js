@@ -4,7 +4,7 @@
 //   · Claude    — Shelf writes the prompt (with the bookmarks in it); you run it in Claude, then
 //                 bring the answer back as a plan. No API key, nothing sent by Shelf itself.
 
-import { h, hostOf, plural, faviconUrl, isWeb } from './util.js';
+import { h, DEVICE, hostOf, plural, faviconUrl, isWeb } from './util.js';
 import { openDialog, toast } from './ui.js';
 import * as M from './model.js';
 import * as previews from './previews.js';
@@ -280,7 +280,7 @@ export function tidy({ items, currentId, onApplied }) {
     badge.hidden = true;
     const deep = h('input', { type: 'checkbox' });
     const scope = () => (deep.checked ? collect(here, true) : loose);
-    // Two separate ways to get a plan: one button on this Mac, or a round trip through Claude in three steps.
+    // Two separate ways to get a plan: one button on this machine, or a round trip through Claude in three steps.
     const option = (icon, title, text, ...rest) =>
       h('section', { class: 'tidy-option' }, h('span', { class: 'tidy-option-ico', icon }), h('div', {}, h('strong', {}, title), h('p', {}, text), rest));
     const step = (title, text, ...actions) => h('li', {}, h('b', {}, title), h('p', {}, text), actions.length ? h('div', { class: 'tidy-actions' }, actions) : null);
@@ -289,7 +289,7 @@ export function tidy({ items, currentId, onApplied }) {
     body.replaceChildren(
       option(
         'sparkle',
-        'Sort on this Mac',
+        `Sort on this ${DEVICE}`,
         `Compares the ${plural(loose.length, 'loose bookmark')} here with what your folders already hold. Instant and private, but it can only use folders you already have.`,
         h('div', { class: 'tidy-actions' }, btn('Suggest folders', runLocal, 'primary')),
       ),

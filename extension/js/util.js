@@ -25,6 +25,10 @@ const svg = (body) =>
 export const ICON = {
   // The Shelf mark: three panels receding, the same drawing as the extension icon.
   mark: '<svg viewBox="0 0 128 112" width="18" height="16" fill="currentColor" aria-hidden="true"><path d="M0 15 16 0v112L0 97ZM32 15 64 0v112L32 97ZM80 15 128 0v112L80 97Z"/></svg>',
+  // Brand glyphs for the import sources, drawn to sit with the rest of the set.
+  x: '<svg viewBox="-3 -3 30 30" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  instagram: svg('<rect x="2.25" y="2.25" width="11.5" height="11.5" rx="3.5"/><circle cx="8" cy="8" r="2.75"/><path d="M11.4 4.6h.01"/>'),
+  pinterest: svg('<circle cx="8" cy="8" r="5.75"/><path d="m6.9 12.6 1.1-5.3M7.55 9.1c.25.55.75.85 1.35.85 1.15 0 2-1.05 2-2.3 0-1.25-1-2.15-2.4-2.15-1.6 0-2.75 1.1-2.75 2.5 0 .55.15 1 .45 1.35"/>'),
   review: svg('<path d="m2.25 4.5 1.4 1.4 2.35-2.9M2.25 10.75l1.4 1.4L6 9.25M8.75 4.75h5M8.75 11h5"/>'),
   search: svg('<circle cx="7" cy="7" r="4.25"/><path d="m10.25 10.25 3.25 3.25"/>'),
   folder: svg('<path d="M1.75 4.25c0-.83.67-1.5 1.5-1.5h2.9c.4 0 .78.16 1.06.44l.85.87h4.69c.83 0 1.5.67 1.5 1.5v5.69c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5v-7Z"/>'),
@@ -73,6 +77,9 @@ export function hueOf(str) {
   for (let i = 0; i < str.length; i++) x = (x * 31 + str.charCodeAt(i)) >>> 0;
   return x % 360;
 }
+
+// What to call the machine Shelf runs on, in sentences like "it all stays on this Mac".
+export const DEVICE = /mac/i.test(navigator.userAgentData?.platform || navigator.platform || '') ? 'Mac' : 'computer';
 
 export const isWeb = (url) => /^https?:\/\//i.test(url || '');
 

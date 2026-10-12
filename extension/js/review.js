@@ -1,5 +1,6 @@
-// Review: the housekeeping pass. Three questions about the bookmarks you already have —
+// Review: the housekeeping pass. Four questions about the bookmarks you already have —
 //   · does it still exist?        (broken links)
+//   · has it moved?               (updated links: the address gets corrected, nothing is deleted)
 //   · do I have it twice?         (duplicates)
 //   · do I still care about it?   (saved long ago, never opened since)
 // Nothing is removed until you tick it and press Delete, and the app's normal Undo covers it.
@@ -83,8 +84,9 @@ async function lastVisits() {
 
 // ---------- the dialog ----------
 
-// onDelete(ids) removes with the app's undo toast; onOpen(node) opens it in a background tab.
-export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEditUrl }) {
+// onDelete(ids) removes with the app's undo toast; onOpen(node) opens it in a background tab;
+// onEditUrls([{ id, url }]) corrects addresses, also with one undo.
+export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEditUrls }) {
   let scopeId = null; // null = everything
   let stopCheck = null;
   let age = 180; // days, for "Not opened"
@@ -100,6 +102,7 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
   );
   const tabs = [
     ['broken', 'Broken links'],
+    ['moved', 'Updated links'],
     ['dupes', 'Duplicates'],
     ['stale', 'Not opened'],
   ].map(([id, label]) => h('button', { type: 'button', class: 'seg-btn', 'data-tab': id, onclick: () => (stopCheck?.(), show(id)) }, label));
@@ -116,22 +119,24 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
     tab = id;
     for (const b of tabs) b.classList.toggle('on', b.dataset.tab === id);
     foot.replaceChildren(closeBtn());
-    ({ broken: showBroken, dupes: showDupes, stale: showStale })[id]();
+    ({ broken: showChecked, moved: showChecked, dupes: showDupes, stale: showStale })[id]();
   }
 
   // A checklist in groups. groups: [{ label, icon, hint, items: [{ node, reason, checked, tag, actions }] }]
-  function checklist(intro, groups) {
+  // What the button does with the ticked ones is `act`: deleting them, unless a tab says otherwise.
+  const deleting = { cls: 'danger', label: (n) => (n ? `Delete ${plural(n, 'bookmark')}` : 'Delete'), run: (ids) => onDelete(ids) };
+  function checklist(intro, groups, act = deleting) {
     const boxes = new Map(); // id -> checkbox
-    const del = h('button', { type: 'button', class: 'btn primary danger' });
+    const del = h('button', { type: 'button', class: 'btn primary ' + (act.cls || '') });
     const count = () => {
       const n = [...boxes.values()].filter((b) => b.checked).length;
-      del.textContent = n ? `Delete ${plural(n, 'bookmark')}` : 'Delete';
+      del.textContent = act.label(n);
       del.disabled = !n;
     };
     del.onclick = async () => {
       const ids = [...boxes].filter(([, b]) => b.checked).map(([id]) => id);
       del.disabled = true;
-      await onDelete(ids);
+      await act.run(ids);
       await M.load();
       show(tab);
     };
@@ -203,9 +208,10 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
   const openAct = { label: 'Open in a new tab', icon: 'open', run: () => {} };
   const open = (n) => ({ ...openAct, run: () => onOpen(n) });
 
-  // ----- broken links -----
+  // ----- broken links, and links that moved: two readings of the same check -----
 
-  async function showBroken() {
+  async function showChecked() {
+    const mine = tab;
     const nodes = linksUnder(scopeId);
     if (!nodes.length) return empty('No web bookmarks in here.');
     status('Looking up the last check…');
@@ -215,10 +221,10 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
       const rec = await getRec(url).catch(() => null);
       if (rec?.check && Date.now() - rec.checkAt < CHECK_FRESH) checks.set(url, rec);
     }
-    if (tab !== 'broken') return;
+    if (tab !== mine) return;
     const todo = urls.filter((u) => !checks.has(u));
     if (todo.length > urls.length * 0.2) return brokenIntro(urls, todo);
-    brokenResults(nodes, todo.length);
+    (tab === 'moved' ? movedResults : brokenResults)(nodes, todo.length);
   }
 
   function brokenIntro(urls, todo) {
@@ -231,7 +237,7 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
           'div',
           {},
           h('strong', {}, `Check ${plural(urls.length, 'address')}`),
-          h('p', {}, 'Shelf asks each site for the page, without your cookies, and sorts what comes back: gone (404), no answer at all, or moved to another site. Pages behind a login or a bot wall are left alone as “couldn’t tell”. It takes about a minute per few hundred, and results are remembered for a week.'),
+          h('p', {}, 'Shelf asks each site for the page, without your cookies, and sorts what comes back: gone (404), no answer at all, or moved to another site (those are listed under Updated links). Pages behind a login or a bot wall are left alone as “couldn’t tell”. It takes about a minute per few hundred, and results are remembered for a week.'),
           h('div', { class: 'tidy-actions' }, h('button', { type: 'button', class: 'btn primary', onclick: () => runCheck(todo) }, todo.length < urls.length ? `Check the ${todo.length} not checked yet` : 'Check links')),
         ),
       ),
@@ -239,6 +245,7 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
   }
 
   async function runCheck(todo) {
+    const mine = tab;
     if (!navigator.onLine) return toast('You’re offline, so every link would look broken');
     await rulesReady;
     let stopped = false;
@@ -251,7 +258,7 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
     };
     const label = h('span');
     body.replaceChildren(h('div', { class: 'tidy-status rv-progress' }, h('div', { class: 'tidy-spinner' }), label, h('div', { class: 'rv-bar' }, bar)));
-    foot.replaceChildren(h('button', { type: 'button', class: 'btn ghost', onclick: () => (stopCheck?.(), show('broken')) }, 'Stop'));
+    foot.replaceChildren(h('button', { type: 'button', class: 'btn ghost', onclick: () => (stopCheck?.(), show(mine)) }, 'Stop'));
     paint();
     const queue = [...todo];
     const worker = async () => {
@@ -273,7 +280,7 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
       todo.forEach((u) => checks.delete(u));
       toast('Most sites didn’t answer. That looks like your connection, so nothing was marked');
     }
-    if (tab === 'broken') show('broken');
+    if (tab === mine) show(mine);
   }
 
   function brokenResults(nodes, unchecked) {
@@ -293,41 +300,56 @@ export function review({ folderId = null, tab = 'broken', onDelete, onOpen, onEd
         hint: 'the domain is gone or refuses connections',
         items: by('dead').map((n) => ({ node: n, reason: folderPath(n), checked: false, actions: [wayback(n), open(n)] })),
       },
-      {
-        label: 'Moved to another site',
-        icon: 'move',
-        hint: 'still works; the arrow updates the address',
-        items: by('moved').map((n) => ({
-          node: n,
-          reason: '→ ' + hostOf(checks.get(n.url).checkTo),
-          checked: false,
-          actions: [
-            {
-              label: `Update the address to ${checks.get(n.url).checkTo}`,
-              icon: 'check',
-              run: async (row) => {
-                const to = checks.get(n.url).checkTo;
-                await onEditUrl(n.id, to);
-                checks.set(to, { check: 'ok', checkAt: Date.now() }); // it just answered
-                patchRec(to, { check: 'ok', checkTo: '', checkAt: Date.now() }).catch(() => {});
-                row.remove();
-              },
-            },
-            open(n),
-          ],
-        })),
-      },
     ];
     const unsure = by('unsure').length;
+    const moved = by('moved').length;
     const bad = groups.reduce((s, g) => s + g.items.length, 0);
     const recheck = h('button', { type: 'button', class: 'btn soft', onclick: () => runCheck([...new Set(nodes.map((n) => n.url))]) }, 'Check again');
-    const tail = `${unsure ? ` ${unsure} ${unsure === 1 ? 'sits' : 'sit'} behind a login or bot wall and couldn’t be judged.` : ''}${unchecked ? ` ${unchecked} added since then ${unchecked === 1 ? 'isn’t' : 'aren’t'} checked yet.` : ''}`;
+    const tail = `${moved ? ` ${moved} moved to another site: ${moved === 1 ? 'it is' : 'they are'} under Updated links.` : ''}${unsure ? ` ${unsure} ${unsure === 1 ? 'sits' : 'sit'} behind a login or bot wall and couldn’t be judged.` : ''}${unchecked ? ` ${unchecked} added since then ${unchecked === 1 ? 'isn’t' : 'aren’t'} checked yet.` : ''}`;
     if (!bad) {
-      empty(`All ${nodes.length - unsure - unchecked} links that could be checked still work.${tail}`);
+      empty(`${moved ? 'No broken links' : `All ${nodes.length - unsure - unchecked} links that could be checked still work`}.${tail}`);
       body.append(h('div', { class: 'rv-center' }, recheck));
       return;
     }
-    checklist(`${plural(bad, 'bookmark')} out of ${nodes.length} need a look (checked ${since(oldest)}).${tail}`, groups);
+    checklist(`${plural(bad, 'bookmark')} out of ${nodes.length} ${bad === 1 ? 'needs' : 'need'} a look (checked ${since(oldest)}).${tail}`, groups);
+    body.append(h('div', { class: 'rv-center' }, recheck));
+  }
+
+  // Still alive, at a new address: nothing to delete here, the address is what gets corrected.
+  function movedResults(nodes, unchecked) {
+    const moved = nodes.filter((n) => checks.get(n.url)?.check === 'moved');
+    const recheck = h('button', { type: 'button', class: 'btn soft', onclick: () => runCheck([...new Set(nodes.map((n) => n.url))]) }, 'Check again');
+    const tail = unchecked ? ` ${unchecked} added since the last check ${unchecked === 1 ? 'isn’t' : 'aren’t'} checked yet.` : '';
+    if (!moved.length) {
+      empty(`No bookmark in here has moved to another site.${tail}`);
+      body.append(h('div', { class: 'rv-center' }, recheck));
+      return;
+    }
+    const update = async (list) => {
+      const pairs = list.map((n) => ({ id: n.id, url: checks.get(n.url).checkTo }));
+      await onEditUrls(pairs);
+      for (const { url } of pairs) {
+        checks.set(url, { check: 'ok', checkAt: Date.now() }); // it just answered
+        patchRec(url, { check: 'ok', checkTo: '', checkAt: Date.now() }).catch(() => {});
+      }
+    };
+    checklist(
+      `${plural(moved.length, 'bookmark')} still ${moved.length === 1 ? 'works' : 'work'}, but the site now sends you to a different address. Updating saves the new address in the bookmark; nothing is deleted. Untick any that lead somewhere you don’t expect.${tail}`,
+      [
+        {
+          label: 'Moved to another site',
+          icon: 'move',
+          hint: 'old address → where it leads now',
+          items: moved.map((n) => ({
+            node: n,
+            reason: `${hostOf(n.url)} → ${hostOf(checks.get(n.url).checkTo)}`,
+            checked: true,
+            actions: [{ label: `Update only this one, to ${checks.get(n.url).checkTo}`, icon: 'check', run: async (row) => (await update([n]), row.remove()) }, open(n)],
+          })),
+        },
+      ],
+      { label: (n) => (n ? `Update ${plural(n, 'link')}` : 'Update'), run: (ids) => update(ids.map(M.node).filter(Boolean)) },
+    );
     body.append(h('div', { class: 'rv-center' }, recheck));
   }
 

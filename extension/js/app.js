@@ -1,4 +1,4 @@
-import { $, $$, h, ICON, hostOf, hueOf, isWeb, faviconUrl, debounce, clamp, plural, SPRING, reducedMotion } from './util.js';
+import { $, $$, h, ICON, DEVICE, hostOf, hueOf, isWeb, faviconUrl, debounce, clamp, plural, SPRING, reducedMotion } from './util.js';
 import * as M from './model.js';
 import * as previews from './previews.js';
 import { toast, openMenu, closeMenu, formDialog, folderPicker, dialogOpen } from './ui.js';
@@ -151,7 +151,7 @@ function renderTree() {
       const isShelf = k.id === M.SHELF_ROOT;
       if (depth === 0 && !isShelf && !k.children?.length && k !== n.children[0] && k !== n.children[1]) continue;
       if (depth === 0 && (isShelf || k === n.children[0])) {
-        rows.push(h('div', { class: 'tree-label' }, isShelf ? 'On this Mac' : 'Browser'));
+        rows.push(h('div', { class: 'tree-label' }, isShelf ? `On this ${DEVICE}` : 'Browser'));
       }
       const hasSub = k.children.some((c) => !c.url);
       const row = h(
@@ -524,7 +524,7 @@ function renderGrid(opts = {}) {
     $('#empty-sub').textContent = S.query
       ? 'Try a shorter search, or part of the address.'
       : M.isLocal(S.folderId)
-        ? 'Drop in videos, images, PDFs or any file — or paste a link. It all stays on this Mac.'
+        ? `Drop in videos, images, PDFs or any file — or paste a link. It all stays on this ${DEVICE}.`
         : 'Drag bookmarks in, paste a link, or drop a tab here.';
   }
   renderCrumbs(items);
@@ -837,11 +837,11 @@ async function addMenu(e) {
   };
   openMenu(r.left, r.bottom + 6, [
     // A second run only collects what is new: it stops scrolling at the posts it already has.
-    { label: lastSync.x ? 'Sync my X bookmarks…' : 'My X bookmarks…', icon: lastSync.x ? 'refresh' : 'download', hint: ago(lastSync.x), brand: 'x', run: collect('x') },
-    { label: lastSync.instagram ? 'Sync my Instagram saved posts…' : 'My Instagram saved posts…', icon: lastSync.instagram ? 'refresh' : 'download', hint: ago(lastSync.instagram), brand: 'instagram', run: collect('instagram') },
-    { label: lastSync.pinterest ? 'Sync my Pinterest pins…' : 'My Pinterest boards and pins…', icon: lastSync.pinterest ? 'refresh' : 'download', hint: ago(lastSync.pinterest), brand: 'pinterest', run: collect('pinterest') },
+    { label: lastSync.x ? 'Sync my X bookmarks…' : 'My X bookmarks…', icon: 'x', hint: ago(lastSync.x), brand: 'x', run: collect('x') },
+    { label: lastSync.instagram ? 'Sync my Instagram saved posts…' : 'My Instagram saved posts…', icon: 'instagram', hint: ago(lastSync.instagram), brand: 'instagram', run: collect('instagram') },
+    { label: lastSync.pinterest ? 'Sync my Pinterest pins…' : 'My Pinterest boards and pins…', icon: 'pinterest', hint: ago(lastSync.pinterest), brand: 'pinterest', run: collect('pinterest') },
     null,
-    { label: 'Files from this Mac…', icon: 'upload', run: pickFiles },
+    { label: `Files from this ${DEVICE}…`, icon: 'upload', run: pickFiles },
     { label: 'This window’s open tabs, as a folder…', icon: 'window', run: saveOpenTabs },
   ]);
 }
@@ -983,15 +983,45 @@ function reviewHere(tab) {
     tab,
     onDelete: removeNodes,
     onOpen: (n) => openNode(n, false),
-    onEditUrl: async (id, url) => {
-      const n = M.node(id);
-      const note = noteOf(n.url);
-      const undoEdit = await M.update(id, { title: n.title, url });
-      if (note) await setNote(url, note);
-      pushUndo(undoEdit);
-      toast('Address updated', { action: 'Undo', onAction: undoLast });
+    onEditUrls: async (pairs) => {
+      const undos = [];
+      for (const { id, url } of pairs) {
+        const n = M.node(id);
+        if (!n) continue;
+        const note = noteOf(n.url);
+        undos.push(await M.update(id, { title: n.title, url }));
+        if (note) await setNote(url, note);
+      }
+      const undo = pushUndo(async () => {
+        for (const u of undos.reverse()) await u();
+      });
+      toast(undos.length === 1 ? 'Address updated' : `${undos.length} addresses updated`, { action: 'Undo', onAction: undo });
     },
   });
+}
+
+// The introduction: shown once on first run, and again from Settings whenever you like.
+function openWelcome() {
+  const row = (icon, title, text) => h('li', {}, h('span', { class: 'tidy-option-ico', icon }), h('div', {}, h('strong', {}, title), h('p', {}, text)));
+  const close = openDialog(
+    h(
+      'div',
+      { class: 'form welcome' },
+      h('div', { class: 'welcome-mark', icon: 'mark' }),
+      h('h2', {}, 'Welcome to Shelf'),
+      h('p', { class: 'welcome-lead' }, 'Your browser bookmarks, laid out as cards you can see and move. Nothing here leaves this ' + DEVICE + '.'),
+      h(
+        'ul',
+        { class: 'welcome-list' },
+        row('grid', 'Look, drag, right-click', 'Click a card for a quick look, drag it onto a folder to file it, and right-click anything, or the empty canvas, for the rest: new folder, move, rename.'),
+        row('sparkle', 'Tidy up', 'Suggests which folder each loose bookmark belongs in. You approve every move first.'),
+        row('review', 'Review', 'Finds broken links, duplicates and bookmarks you saved long ago and never open.'),
+        row('camera', 'Capture previews', 'Photographs the pages that have no picture on their card yet.'),
+        row('download', 'Import', 'Brings in your saved posts from X, Instagram and Pinterest, and your own files, into My Shelf.'),
+      ),
+      h('div', { class: 'form-actions' }, h('button', { type: 'button', class: 'btn primary', onclick: () => close() }, 'Start')),
+    ),
+  );
 }
 
 async function openSettings() {
@@ -1040,13 +1070,19 @@ async function openSettings() {
     { class: 'form settings' },
     h('h2', {}, 'Settings'),
     h('div', { class: 'set-title' }, 'Backups of your browser bookmarks'),
-    h('p', { class: 'set-note' }, 'Shelf snapshots all your browser bookmarks every day it is opened and before every Tidy up, and keeps the last 20 on this Mac. Download gives a standard bookmarks file any browser can import.'),
+    h('p', { class: 'set-note' }, `Shelf snapshots all your browser bookmarks every day it is opened and before every Tidy up, and keeps the last 20 on this ${DEVICE}. Download gives a standard bookmarks file any browser can import.`),
     backups,
     h('div', {}, h('button', { type: 'button', class: 'btn soft', onclick: async () => (await takeBackup('Manual'), draw(), toast('Backup saved')) }, 'Back up now')),
     h('div', { class: 'set-title' }, 'Automation'),
     h('label', { class: 'check' }, visit, h('span', {}, 'Snapshot bookmarked pages as I browse, for their card preview')),
     h('label', { class: 'check' }, auto, h('span', {}, 'File new Instagram and X bookmarks into their own folders, ready for Tidy up to sort by topic')),
-    h('div', { class: 'form-actions' }, h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel'), h('button', { type: 'submit', class: 'btn primary' }, 'Save')),
+    h(
+      'div',
+      { class: 'form-actions' },
+      h('button', { type: 'button', class: 'btn ghost welcome-again', onclick: () => (close(), openWelcome()) }, 'Show the introduction'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel'),
+      h('button', { type: 'submit', class: 'btn primary' }, 'Save'),
+    ),
   );
   form.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1806,6 +1842,11 @@ async function init() {
   addEventListener('hashchange', onRoute);
   onRoute();
   dailyBackup().catch(() => {});
+  if (!S.settings.welcomed) {
+    S.settings.welcomed = true;
+    saveSettings();
+    openWelcome();
+  }
 
   for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved', 'onChildrenReordered', 'onImportEnded']) {
     chrome.bookmarks[ev].addListener(refresh);
