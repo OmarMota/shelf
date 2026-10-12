@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Bookmarks</title>
-    <link rel="icon" href="icons/icon48.png" />
+    <link rel="icon" href="icons/icon32.png" />
     <link rel="stylesheet" href="app.css" />
   </head>
   <body>
     <aside id="sidebar">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-mark" data-icon="mark" aria-hidden="true"></span>
         <span>Shelf</span>
       </div>
       <label class="search">
@@ -37,18 +37,20 @@
           <div id="count"></div>
         </div>
         <div class="actions">
-          <button id="btn-view" class="icon-btn" title="Show as a gallery"></button>
+          <div id="view-seg" class="view-seg" role="group" aria-label="Layout">
+            <button class="view-btn" data-view="grid" title="Grid: cards of equal size (V)" aria-label="Grid" data-icon="grid"></button>
+            <button class="view-btn" data-view="gallery" title="Gallery: pictures at their own shape, uncropped (V)" aria-label="Gallery" data-icon="gallery"></button>
+          </div>
           <button id="btn-tidy" class="btn ghost" title="Work out which folder each loose bookmark belongs in">
             <span data-icon="sparkle"></span><span>Tidy up</span>
           </button>
           <button id="btn-review" class="btn ghost" title="Find broken links, duplicates, and bookmarks you saved long ago and never open">
-            <span data-icon="heart"></span><span>Review</span>
+            <span data-icon="review"></span><span>Review</span>
           </button>
           <button id="btn-capture" class="btn ghost" title="Open each bookmark here in a preview and photograph it">
-            <span data-icon="camera"></span><span>Capture previews</span>
+            <span data-icon="camera"></span><span>Capture previews</span><span id="capture-n" class="count-badge" hidden></span>
           </button>
-          <button id="btn-files" class="btn ghost" title="Bring in your saved posts from X and Instagram, or files from this Mac. They go to My Shelf."><span data-icon="download"></span><span>Import</span></button>
-          <button id="btn-new-folder" class="btn ghost"><span data-icon="folderPlus"></span><span>Folder</span></button>
+          <button id="btn-files" class="btn ghost" title="Bring in your saved posts from X, Instagram and Pinterest, or files from this Mac. They go to My Shelf."><span data-icon="download"></span><span>Import</span></button>
           <button id="btn-new-bm" class="btn primary"><span data-icon="plus"></span><span>Bookmark</span></button>
         </div>
       </header>

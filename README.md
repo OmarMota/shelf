@@ -160,9 +160,9 @@ created). A backup is saved before every run. There is no API key anywhere:
 
 - **Sort on this Mac**: compares each loose bookmark's title, site, description and caption with what
   every folder already holds. Instant and private, but it can only use folders you already have.
-- **Sort with Claude**: **Copy prompt** puts a ready-made prompt on your clipboard with the bookmarks
-  inside it. Paste it into Claude (claude.ai or Claude Code), which answers with a plan.
-- **Import a plan**: **Paste plan** or **Choose file…**, then review. Plans are plain JSON:
+- **Sort with Claude**, in three steps: **Copy prompt** puts a ready-made prompt on your clipboard with
+  the bookmarks inside it; paste it into Claude (claude.ai or Claude Code), which answers with a plan;
+  bring that back with **Paste answer** or **Choose file…**, then review. Plans are plain JSON:
   `{"shelfPlan":1,"moves":[{"id":"123","url":"https://…","to":["Bookmarks bar","Design","Icons"],"reason":"…"}]}`.
   `to` is a folder path by name; missing folders are created. Items are matched by id, then by url.
   A local `plans/` folder is gitignored if you want to keep plan files next to the code.
@@ -228,7 +228,7 @@ extension/
 │                        auto-files social posts, drives the import panel
 ├── index.html, app.css  the Shelf page
 ├── view.html            viewer for files kept in My Shelf
-├── icons/               16, 48, 128 px
+├── icons/               16, 32, 48, 128 px
 └── js/
     ├── app.js           the canvas, sidebar, drag & drop, selection, menus, keyboard
     ├── model.js         one tree over two sources: browser bookmarks + My Shelf

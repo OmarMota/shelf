@@ -56,8 +56,12 @@ function viewMode() {
 }
 
 function toggleView() {
+  setView(viewMode() === 'gallery' ? 'grid' : 'gallery');
+}
+
+function setView(next) {
   if (S.query) return toast('Search results are always shown as a grid');
-  const next = viewMode() === 'gallery' ? 'grid' : 'gallery';
+  if (next === viewMode()) return;
   S.settings.views = { ...S.settings.views, [S.folderId]: next };
   saveSettings();
   renderGrid();
@@ -210,9 +214,10 @@ function renderCrumbs(items) {
   const nf = items.length - nb;
   const noun = M.isLocal(S.folderId) && !S.query ? 'item' : 'bookmark';
   $('#count').textContent = [nb && plural(nb, noun), nf && plural(nf, 'folder')].filter(Boolean).join(' · ');
-  $('#btn-back').disabled = !S.query && path.length < 2;
-  const inShelf = M.isLocal(S.folderId) && !S.query;
-  $('#btn-new-bm').lastElementChild.textContent = inShelf ? 'Link' : 'Bookmark';
+  // Back only exists where there is somewhere to go back to: inside a folder, or out of a search.
+  const back = $('#btn-back');
+  back.hidden = !S.query && path.length < 2;
+  back.title = S.query ? 'Back to the folder' : `Back to “${path.at(-2)?.title || ''}” (⌘↑)`;
   document.title = S.query ? `Search — Shelf` : `${path.at(-1)?.title || 'Bookmarks'} — Shelf`;
 }
 
@@ -362,6 +367,7 @@ async function paintPreview(el) {
 
 previews.onPreview((url, entry) => {
   for (const el of $$('[data-url]', grid)) if (el.dataset.url === url) paintPreview(el);
+  countCaptures();
   // A pasted link was given its hostname as a title; adopt the real one once we know it.
   for (const [id, u] of autoTitle) {
     if (u !== url) continue;
@@ -480,9 +486,8 @@ function renderGrid(opts = {}) {
     document.body.dataset.view = mode;
     opts = { ...opts, instant: new Set(items.map((n) => n.id)) }; // a change of view isn't a shuffle
   }
-  const viewBtn = $('#btn-view');
-  viewBtn.innerHTML = ICON[mode === 'gallery' ? 'grid' : 'gallery'];
-  viewBtn.title = mode === 'gallery' ? 'Show as a grid of cards (V)' : 'Show as a gallery: pictures uncropped (V)';
+  for (const b of $$('.view-btn')) b.setAttribute('aria-pressed', b.dataset.view === mode);
+  $('#view-seg').classList.toggle('off', !!S.query);
   order = items.map((n) => n.id);
   const keep = new Set(order);
   for (const id of [...S.sel]) if (!keep.has(id)) S.sel.delete(id);
@@ -523,6 +528,7 @@ function renderGrid(opts = {}) {
         : 'Drag bookmarks in, paste a link, or drop a tab here.';
   }
   renderCrumbs(items);
+  countCaptures();
 }
 
 function renderAll(opts) {
@@ -831,9 +837,9 @@ async function addMenu(e) {
   };
   openMenu(r.left, r.bottom + 6, [
     // A second run only collects what is new: it stops scrolling at the posts it already has.
-    { label: lastSync.x ? 'Sync my X bookmarks…' : 'My X bookmarks…', icon: lastSync.x ? 'refresh' : 'download', hint: ago(lastSync.x), run: collect('x') },
-    { label: lastSync.instagram ? 'Sync my Instagram saved posts…' : 'My Instagram saved posts…', icon: lastSync.instagram ? 'refresh' : 'download', hint: ago(lastSync.instagram), run: collect('instagram') },
-    { label: lastSync.pinterest ? 'Sync my Pinterest pins…' : 'My Pinterest boards and pins…', icon: lastSync.pinterest ? 'refresh' : 'download', hint: ago(lastSync.pinterest), run: collect('pinterest') },
+    { label: lastSync.x ? 'Sync my X bookmarks…' : 'My X bookmarks…', icon: lastSync.x ? 'refresh' : 'download', hint: ago(lastSync.x), brand: 'x', run: collect('x') },
+    { label: lastSync.instagram ? 'Sync my Instagram saved posts…' : 'My Instagram saved posts…', icon: lastSync.instagram ? 'refresh' : 'download', hint: ago(lastSync.instagram), brand: 'instagram', run: collect('instagram') },
+    { label: lastSync.pinterest ? 'Sync my Pinterest pins…' : 'My Pinterest boards and pins…', icon: lastSync.pinterest ? 'refresh' : 'download', hint: ago(lastSync.pinterest), brand: 'pinterest', run: collect('pinterest') },
     null,
     { label: 'Files from this Mac…', icon: 'upload', run: pickFiles },
     { label: 'This window’s open tabs, as a folder…', icon: 'window', run: saveOpenTabs },
@@ -1054,7 +1060,8 @@ async function openSettings() {
   draw();
 }
 
-async function captureHere() {
+// The bookmarks on the canvas whose card has no photo of the page yet.
+async function needCapture() {
   const need = [];
   for (const n of visibleItems()) {
     if (!n.url || !isWeb(n.url)) continue;
@@ -1063,9 +1070,57 @@ async function captureHere() {
     // Videos already have a proper poster; posts only need a photo when nothing else turned up.
     if (m.type === 'page' ? e.kind !== 'shot' : isSocialPost(m) && !e.src) need.push(n);
   }
+  return need;
+}
+
+// The number on the Capture previews button: how many are still to do here.
+const countCaptures = debounce(async () => {
+  const n = (await needCapture()).length;
+  const badge = $('#capture-n');
+  badge.hidden = !n;
+  badge.textContent = n > 999 ? '999+' : n;
+  $('#btn-capture').title = n
+    ? `${plural(n, 'bookmark')} here ${n === 1 ? 'has' : 'have'} no photo of the page yet`
+    : 'Every bookmark here already has a photo of its page';
+}, 200);
+
+async function captureHere() {
+  const need = await needCapture();
   if (!need.length) return toast('Every bookmark here already has a captured preview');
+  const links = visibleItems().filter((n) => n.url && isWeb(n.url)).length;
+  const ok = await new Promise((resolve) => {
+    let go = false;
+    const close = openDialog(
+      h(
+        'div',
+        { class: 'form' },
+        h('h2', {}, 'Capture previews'),
+        h(
+          'section',
+          { class: 'tidy-option' },
+          h('span', { class: 'tidy-option-ico', icon: 'camera' }),
+          h(
+            'div',
+            {},
+            h('strong', {}, `${need.length} of ${plural(links, 'bookmark')} here ${need.length === 1 ? 'has' : 'have'} no photo yet`),
+            h('p', {}, 'Shelf opens each page in a preview, one after the other, waits for it to load and photographs it for its card. Pages that never finish loading are skipped.'),
+            h('p', {}, 'It takes a few seconds per page. Press Esc to stop whenever you like: what was captured so far is kept.'),
+          ),
+        ),
+        h(
+          'div',
+          { class: 'form-actions' },
+          h('button', { type: 'button', class: 'btn ghost', onclick: () => close() }, 'Cancel'),
+          h('button', { type: 'button', class: 'btn primary', onclick: () => ((go = true), close()) }, `Capture ${plural(need.length, 'preview')}`),
+        ),
+      ),
+      { onClose: () => resolve(go) },
+    );
+  });
+  if (!ok) return;
   const done = await ql.runBatch(need);
-  toast(`Captured ${plural(done, 'preview')}`);
+  toast(done < need.length ? `Captured ${done} of ${plural(need.length, 'preview')}` : `Captured ${plural(done, 'preview')}`);
+  countCaptures();
 }
 
 function linksFromText(text) {
@@ -1582,7 +1637,7 @@ canvas.addEventListener('contextmenu', (e) => {
     { label: 'Save this window’s tabs as a folder…', icon: 'window', run: saveOpenTabs },
     null,
     { label: 'Tidy up this folder…', icon: 'sparkle', run: tidyHere },
-    { label: 'Review: broken, duplicate, forgotten…', icon: 'heart', run: () => reviewHere() },
+    { label: 'Review: broken, duplicate, forgotten…', icon: 'review', run: () => reviewHere() },
     { label: 'Capture previews here', icon: 'camera', run: captureHere },
     { label: 'Select all', icon: 'check', hint: '⌘A', run: selectAll },
     null,
@@ -1782,11 +1837,13 @@ async function init() {
     if (path.length > 1) go(path.at(-2).id);
   });
   $('#btn-new-bm').addEventListener('click', newBookmark);
-  $('#btn-new-folder').addEventListener('click', () => newFolder());
   $('#btn-capture').addEventListener('click', captureHere);
   $('#btn-tidy').addEventListener('click', tidyHere);
   $('#btn-review').addEventListener('click', () => reviewHere());
-  $('#btn-view').addEventListener('click', toggleView);
+  $('#view-seg').addEventListener('click', (e) => {
+    const view = e.target.closest('.view-btn')?.dataset.view;
+    if (view) setView(view);
+  });
   $('#btn-files').addEventListener('click', addMenu);
   $('#btn-settings').addEventListener('click', openSettings);
 

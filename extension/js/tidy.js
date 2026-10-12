@@ -280,8 +280,10 @@ export function tidy({ items, currentId, onApplied }) {
     badge.hidden = true;
     const deep = h('input', { type: 'checkbox' });
     const scope = () => (deep.checked ? collect(here, true) : loose);
-    const option = (icon, title, text, ...actions) =>
-      h('section', { class: 'tidy-option' }, h('span', { class: 'tidy-option-ico', icon }), h('div', {}, h('strong', {}, title), h('p', {}, text), h('div', { class: 'tidy-actions' }, actions)));
+    // Two separate ways to get a plan: one button on this Mac, or a round trip through Claude in three steps.
+    const option = (icon, title, text, ...rest) =>
+      h('section', { class: 'tidy-option' }, h('span', { class: 'tidy-option-ico', icon }), h('div', {}, h('strong', {}, title), h('p', {}, text), rest));
+    const step = (title, text, ...actions) => h('li', {}, h('b', {}, title), h('p', {}, text), actions.length ? h('div', { class: 'tidy-actions' }, actions) : null);
     const btn = (label, run, cls = 'soft') => h('button', { type: 'button', class: 'btn ' + cls, onclick: run }, label);
 
     body.replaceChildren(
@@ -289,45 +291,54 @@ export function tidy({ items, currentId, onApplied }) {
         'sparkle',
         'Sort on this Mac',
         `Compares the ${plural(loose.length, 'loose bookmark')} here with what your folders already hold. Instant and private, but it can only use folders you already have.`,
-        btn('Suggest folders', runLocal, 'primary'),
+        h('div', { class: 'tidy-actions' }, btn('Suggest folders', runLocal, 'primary')),
       ),
+      h('div', { class: 'tidy-or' }, 'or'),
       option(
         'edit',
         'Sort with Claude',
-        'Claude reads what each page or post is about and can suggest new folders. Shelf writes the prompt, bookmarks included; paste it into Claude (claude.ai or Claude Code), then bring the answer back below.',
-        btn('Copy prompt', async () => {
-          const list = scope();
-          if (!list.length) return toast('Nothing to sort here');
-          await read(list);
-          if (closed) return;
-          await navigator.clipboard.writeText(buildPrompt(list, currentId));
-          start();
-          toast(`Prompt with ${plural(list.length, 'bookmark')} copied. Paste it into Claude`);
-        }),
-        h('label', { class: 'check small' }, deep, h('span', {}, `Include everything inside “${here.title}”, subfolders too`)),
-      ),
-      option(
-        'download',
-        'Import a plan',
-        'Paste Claude’s answer, or choose a plan file. You review every move before anything happens.',
-        btn('Paste plan', async () => {
-          try {
-            review(parsePlan(await navigator.clipboard.readText()), 'Claude');
-          } catch (err) {
-            toast(err.message || 'Couldn’t read the clipboard');
-          }
-        }),
-        btn('Choose file…', () => {
-          const input = h('input', { type: 'file', accept: '.json,application/json,text/plain' });
-          input.addEventListener('change', async () => {
-            try {
-              review(parsePlan(await input.files[0].text()), 'Claude');
-            } catch (err) {
-              toast(err.message);
-            }
-          });
-          input.click();
-        }),
+        'Claude reads what each page or post is about and can suggest new folders. Shelf sends nothing itself: you carry the prompt there and the answer back.',
+        h(
+          'ol',
+          { class: 'tidy-steps' },
+          step(
+            'Copy the prompt',
+            'Shelf writes it for you, with the bookmarks inside.',
+            btn('Copy prompt', async () => {
+              const list = scope();
+              if (!list.length) return toast('Nothing to sort here');
+              await read(list);
+              if (closed) return;
+              await navigator.clipboard.writeText(buildPrompt(list, currentId));
+              start();
+              toast(`Prompt with ${plural(list.length, 'bookmark')} copied. Paste it into Claude`);
+            }),
+            h('label', { class: 'check small' }, deep, h('span', {}, `Include everything inside “${here.title}”, subfolders too`)),
+          ),
+          step('Paste it into Claude', 'In claude.ai or Claude Code. When Claude has answered, copy its whole answer.'),
+          step(
+            'Bring the answer back',
+            'Paste it here, or choose it as a file. You review every move before anything happens.',
+            btn('Paste answer', async () => {
+              try {
+                review(parsePlan(await navigator.clipboard.readText()), 'Claude');
+              } catch (err) {
+                toast(err.message || 'Couldn’t read the clipboard');
+              }
+            }),
+            btn('Choose file…', () => {
+              const input = h('input', { type: 'file', accept: '.json,application/json,text/plain' });
+              input.addEventListener('change', async () => {
+                try {
+                  review(parsePlan(await input.files[0].text()), 'Claude');
+                } catch (err) {
+                  toast(err.message);
+                }
+              });
+              input.click();
+            }),
+          ),
+        ),
       ),
     );
     foot.replaceChildren(h('button', { type: 'button', class: 'btn ghost', onclick: close }, 'Close'));

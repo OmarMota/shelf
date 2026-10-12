@@ -38,7 +38,7 @@ export function closeMenu() {
   menuEl = null;
 }
 
-// items: [{ label, icon, danger, hint, run }] with null as a separator
+// items: [{ label, icon, danger, hint, brand, run }] with null as a separator; brand tints the hover
 export function openMenu(x, y, items) {
   closeMenu();
   const el = (menuEl = h('div', { class: 'menu', role: 'menu' }));
@@ -51,7 +51,7 @@ export function openMenu(x, y, items) {
       h(
         'button',
         {
-          class: 'menu-item' + (it.danger ? ' danger' : ''),
+          class: 'menu-item' + (it.danger ? ' danger' : '') + (it.brand ? ' brand brand-' + it.brand : ''),
           role: 'menuitem',
           onclick: () => (closeMenu(), it.run()),
         },

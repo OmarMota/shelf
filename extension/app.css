@@ -185,12 +185,7 @@ kbd {
   letter-spacing: -0.01em;
 }
 .brand-mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: var(--card);
-  box-shadow: var(--shadow-1), 5px -4px 0 -1px var(--folder-back);
-  transform: rotate(-6deg);
+  flex: none;
 }
 .search {
   display: flex;
@@ -387,11 +382,54 @@ kbd {
 }
 .actions {
   display: flex;
+  align-items: center;
   gap: 4px;
   flex: none;
 }
+/* Grid or gallery: both choices on show, the current one raised. */
+.view-seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin-right: 4px;
+  border-radius: 10px;
+  background: var(--bg-sunk);
+  box-shadow: inset 0 0 0 0.5px var(--line);
+}
+.view-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  border-radius: 8px;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.view-btn:hover {
+  color: var(--ink);
+}
+.view-btn[aria-pressed='true'] {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+.view-seg.off {
+  opacity: 0.4;
+}
+.count-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-right: -4px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 650 11px/18px var(--font);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 @media (max-width: 1240px) {
-  #btn-capture span:last-child,
+  #btn-capture span:nth-child(2),
   #btn-review span:last-child {
     display: none;
   }
@@ -941,6 +979,8 @@ body.dragging * {
   }
 }
 .menu-item {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -967,6 +1007,69 @@ body.dragging * {
 }
 .menu-label {
   flex: 1;
+}
+/* Import sources: hovering one washes it in that network's colour, with a slow sheen across. */
+.menu-item.brand-x {
+  --brand: linear-gradient(100deg, color-mix(in srgb, var(--ink) 45%, transparent), var(--ink) 50%, color-mix(in srgb, var(--ink) 45%, transparent));
+  --brand-ink: var(--ink);
+}
+.menu-item.brand-instagram {
+  --brand: linear-gradient(100deg, #feda75, #fa7e1e 28%, #d62976 55%, #962fbf 78%, #4f5bd5);
+  --brand-ink: #e1306c;
+}
+.menu-item.brand-pinterest {
+  --brand: linear-gradient(100deg, #e60023, #ff5a6e 50%, #e60023);
+  --brand-ink: #e60023;
+}
+.menu-item.brand::before,
+.menu-item.brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.menu-item.brand::before {
+  background: var(--brand);
+}
+.menu-item.brand::after {
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%) 150% 0 / 250% 100% no-repeat;
+  mix-blend-mode: overlay;
+}
+.menu-item.brand:hover,
+.menu-item.brand:focus-visible {
+  background: none;
+}
+.menu-item.brand:hover::before,
+.menu-item.brand:focus-visible::before {
+  opacity: 0.2;
+}
+.menu-item.brand:hover::after,
+.menu-item.brand:focus-visible::after {
+  opacity: 1;
+  animation: brand-sheen 1.5s ease-in-out infinite;
+}
+.menu-item.brand:hover .menu-ico,
+.menu-item.brand:focus-visible .menu-ico {
+  color: var(--brand-ink);
+}
+.menu-item.brand > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes brand-sheen {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-item.brand::after {
+    animation: none !important;
+  }
 }
 .menu-sep {
   height: 1px;
@@ -1635,13 +1738,22 @@ body.dragging .row-add {
   flex: none;
   accent-color: var(--accent);
 }
+.form select {
+  appearance: none;
+  padding-right: 30px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23858c94' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4.5 6.25 3.5 3.5 3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 14px;
+  cursor: pointer;
+}
 .form input[type='password'],
 .form select {
   height: 36px;
   padding: 0 11px;
   border: 0;
   border-radius: 10px;
-  background: var(--bg-sunk);
+  background-color: var(--bg-sunk);
   box-shadow: inset 0 0 0 0.5px var(--line);
   outline: 0;
   font: inherit;
@@ -1711,6 +1823,71 @@ body.dragging .row-add {
   color: var(--muted);
   line-height: 1.5;
 }
+.tidy-or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tidy-or::before,
+.tidy-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.tidy-steps {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.tidy-steps li {
+  position: relative;
+  padding: 0 0 14px 32px;
+  counter-increment: step;
+}
+.tidy-steps li:last-child {
+  padding-bottom: 0;
+}
+.tidy-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: -2px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-1);
+  font: 650 11px/1 var(--font);
+}
+/* the line that joins one step to the next */
+.tidy-steps li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 10.5px;
+  top: 24px;
+  bottom: 2px;
+  width: 1px;
+  background: var(--line);
+}
+.tidy-steps b {
+  font-weight: 600;
+}
+.tidy-option .tidy-steps p {
+  margin: 2px 0 8px;
+}
+.tidy-steps li p:last-child {
+  margin-bottom: 0;
+}
 .tidy-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1768,10 +1945,10 @@ body.dragging .row-add {
 .form .rv-scope {
   width: auto;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 26px 0 9px !important;
   border: 0;
   border-radius: 8px;
-  background: var(--bg-sunk);
+  background-color: var(--bg-sunk);
   box-shadow: inset 0 0 0 0.5px var(--line);
   font: 500 12px/1 var(--font);
   color: var(--ink-2);
@@ -1874,9 +2051,6 @@ body.dragging .row-add {
 
 /* ---------- gallery view: the picture is the card ---------- */
 
-#btn-view {
-  margin-right: 2px;
-}
 body[data-view='gallery'] .bm .card-in {
   padding: 0;
   overflow: hidden;

@@ -23,6 +23,9 @@ const svg = (body) =>
   `<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICON = {
+  // The Shelf mark: three panels receding, the same drawing as the extension icon.
+  mark: '<svg viewBox="0 0 128 112" width="18" height="16" fill="currentColor" aria-hidden="true"><path d="M0 15 16 0v112L0 97ZM32 15 64 0v112L32 97ZM80 15 128 0v112L80 97Z"/></svg>',
+  review: svg('<path d="m2.25 4.5 1.4 1.4 2.35-2.9M2.25 10.75l1.4 1.4L6 9.25M8.75 4.75h5M8.75 11h5"/>'),
   search: svg('<circle cx="7" cy="7" r="4.25"/><path d="m10.25 10.25 3.25 3.25"/>'),
   folder: svg('<path d="M1.75 4.25c0-.83.67-1.5 1.5-1.5h2.9c.4 0 .78.16 1.06.44l.85.87h4.69c.83 0 1.5.67 1.5 1.5v5.69c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5v-7Z"/>'),
   folderPlus: svg('<path d="M1.75 4.25c0-.83.67-1.5 1.5-1.5h2.9c.4 0 .78.16 1.06.44l.85.87h4.69c.83 0 1.5.67 1.5 1.5v5.69c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5v-7Z"/><path d="M8 6.75v4M6 8.75h4"/>'),
@@ -87,7 +90,11 @@ export function debounce(fn, ms) {
 
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-export const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+export function plural(n, word) {
+  if (n === 1) return `1 ${word}`;
+  if (/[^aeiou]y$/.test(word)) return `${n} ${word.slice(0, -1)}ies`;
+  return `${n} ${word}${/(s|x|ch|sh)$/.test(word) ? 'es' : 's'}`;
+}
 
 // A damped spring sampled into a CSS linear() easing, so CSS transitions and WAAPI share one feel.
 export function springEasing({ stiffness = 250, damping = 25, mass = 1, duration = 0.62, samples = 36 } = {}) {
