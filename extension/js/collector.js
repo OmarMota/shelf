@@ -95,7 +95,8 @@
   };
 
   // Instagram has no address for "my saved posts" without the username, so look for the profile
-  // link in the site's own navigation (the only nav link drawn with a picture instead of an icon).
+  // link in the site's own navigation: the first link drawn with a picture instead of an icon
+  // after the navigation's icons. (Suggested accounts look the same, but come later.)
   function savedPageUrl() {
     if (onX) return 'https://x.com/i/bookmarks';
     if (SITE === 'pinterest') {
@@ -106,10 +107,12 @@
     }
     const direct = document.querySelector('a[href$="/saved/"]');
     if (direct) return direct.href;
-    const mine = [...document.querySelectorAll('a[href^="/"]')].filter(
+    const nav = document.querySelector('a[href="/direct/inbox/"], a[href="/explore/"], a[href="/reels/"]');
+    const mine = [...document.querySelectorAll('a[href^="/"]')].find(
       (a) => /^\/[A-Za-z0-9._]+\/$/.test(a.getAttribute('href')) && a.querySelector('img') && !a.closest('article, main'),
     );
-    return mine.length ? new URL(mine.at(-1).getAttribute('href') + 'saved/all-posts/', location.origin).href : '';
+    if (!nav || !mine || !(nav.compareDocumentPosition(mine) & Node.DOCUMENT_POSITION_FOLLOWING)) return '';
+    return new URL(mine.getAttribute('href') + 'saved/all-posts/', location.origin).href;
   }
 
   // Instagram opens on its home page, since the address of "Saved" has your username in it. As
