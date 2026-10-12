@@ -113,8 +113,19 @@ chrome.bookmarks.onCreated.addListener(async (id, bm) => {
 
 const COLLECT_URL = { x: 'https://x.com/i/bookmarks', instagram: 'https://www.instagram.com/', pinterest: 'https://www.pinterest.com/' };
 
+const COLLECT_HOST = { x: /(^|\.)(x|twitter)\.com$/, instagram: /(^|\.)instagram\.com$/, pinterest: /(^|\.)pinterest\.[a-z.]+$/ };
+
+// tab id -> { platform, arrived }: the tabs an import is running in.
 async function collectTabs() {
-  return (await chrome.storage.session.get('collectTabs')).collectTabs || [];
+  const tabs = (await chrome.storage.session.get('collectTabs')).collectTabs;
+  return tabs && !Array.isArray(tabs) ? tabs : {};
+}
+
+async function setCollectTab(tabId, entry) {
+  const tabs = await collectTabs();
+  if (entry) tabs[tabId] = entry;
+  else delete tabs[tabId];
+  await chrome.storage.session.set({ collectTabs: tabs });
 }
 
 function inject(tabId) {
@@ -125,8 +136,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg?.type === 'shelf-collect') {
     (async () => {
       const tab = await chrome.tabs.create({ url: msg.url || COLLECT_URL[msg.platform] });
-      await chrome.storage.session.set({ collectTabs: [...(await collectTabs()), tab.id] });
+      await setCollectTab(tab.id, { platform: msg.platform, arrived: false });
     })();
+  } else if (msg?.type === 'shelf-collect-arrived') {
+    // The list of saved posts was reached, so any login detour is over.
+    if (sender.tab) collectTabs().then((tabs) => tabs[sender.tab.id] && setCollectTab(sender.tab.id, { ...tabs[sender.tab.id], arrived: true }));
+  } else if (msg?.type === 'shelf-collect-close') {
+    if (sender.tab) setCollectTab(sender.tab.id, null);
   } else if (msg?.type === 'shelf-import') {
     importPosts(msg.items || []).then(reply, () => reply({ added: 0, skipped: 0, previews: 0, folders: [], folderIds: [] }));
     return true; // async reply
@@ -140,11 +156,21 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
 });
 
-chrome.tabs.onUpdated.addListener(async (tabId, info) => {
-  if (info.status === 'complete' && (await collectTabs()).includes(tabId)) inject(tabId);
+// The panel only ever goes into the site being imported from. A detour elsewhere is tolerated on
+// the way in (signing in through another site); once the saved posts were reached, leaving the
+// site ends the import, so the panel never follows you around.
+chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
+  if (info.status !== 'complete') return;
+  const entry = (await collectTabs())[tabId];
+  if (!entry) return;
+  let host = '';
+  try {
+    host = new URL(tab.url).hostname;
+  } catch {}
+  if (COLLECT_HOST[entry.platform]?.test(host)) inject(tabId);
+  else if (entry.arrived) setCollectTab(tabId, null);
 });
 
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  const tabs = await collectTabs();
-  if (tabs.includes(tabId)) chrome.storage.session.set({ collectTabs: tabs.filter((t) => t !== tabId) });
+  if ((await collectTabs())[tabId]) setCollectTab(tabId, null);
 });

@@ -188,8 +188,10 @@ the extension:
 **Import** → **My X bookmarks…** / **My Instagram saved posts…** / **My Pinterest boards and pins…**.
 Shelf opens the site in a normal tab (your own login, untouched) and shows a small panel:
 
-1. If you aren't on your saved list yet, the panel says so and offers to go there. It reads nothing on
-   other pages unless you press **Use this page**.
+1. If you aren't on your saved list yet, the panel says so and offers to go there (on Instagram it
+   goes by itself once it sees which account is signed in). It reads nothing on other pages unless
+   you press **Use this page**, and it never appears on any other site. Closing it, or leaving the
+   site after reaching your saved list, ends the import.
 2. On the list, it counts posts as they appear while you scroll (or press **Auto-scroll**).
 3. **Save to Shelf** files them under `My Shelf / X bookmarks`, `My Shelf / Instagram saved` or
    `My Shelf / Pinterest / <board>`, with the post text as title and a copy of each picture as the

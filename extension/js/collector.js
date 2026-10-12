@@ -5,9 +5,10 @@
 (() => {
   if (window.__shelfCollector) return window.__shelfCollector.show();
 
-  const found = new Map(); // canonical url -> { url, platform, author, text, image, full, folder }
+  const SITE = /(^|\.)(x|twitter)\.com$/.test(location.hostname) ? 'x' : /(^|\.)pinterest\.[a-z.]+$/.test(location.hostname) ? 'pinterest' : /(^|\.)instagram\.com$/.test(location.hostname) ? 'instagram' : '';
+  if (!SITE) return; // never on any other site
 
-  const SITE = /(^|\.)(x|twitter)\.com$/.test(location.hostname) ? 'x' : /(^|\.)pinterest\.[a-z.]+$/.test(location.hostname) ? 'pinterest' : 'instagram';
+  const found = new Map(); // canonical url -> { url, platform, author, text, image, full, folder }
   const onX = SITE === 'x';
 
   // The picture the page is already showing for a post. Shelf keeps a copy as the card's preview,
@@ -111,9 +112,31 @@
     return mine.length ? new URL(mine.at(-1).getAttribute('href') + 'saved/all-posts/', location.origin).href : '';
   }
 
+  // Instagram opens on its home page, since the address of "Saved" has your username in it. As
+  // soon as the navigation shows which account is signed in, go there: once per tab, so that
+  // walking back to the home page afterwards stays your choice.
+  function goToSaved() {
+    if (SITE !== 'instagram' || location.pathname !== '/') return false;
+    try {
+      if (sessionStorage.getItem('shelfWentToSaved')) return false;
+      const url = savedPageUrl();
+      if (!url) return false;
+      sessionStorage.setItem('shelfWentToSaved', '1');
+      location.href = url;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  let arrived = false;
   function scan() {
     if (state === 'saved' && location.pathname !== savedAt) startOver(); // moved on to another board
-    if (!anyPage && !onSavedPage()) return paint();
+    if (!anyPage && !onSavedPage()) return goToSaved() || paint();
+    if (!arrived && onSavedPage()) {
+      arrived = true;
+      chrome.runtime.sendMessage({ type: 'shelf-collect-arrived' }).catch(() => {});
+    }
     for (const a of document.querySelectorAll('a[href]')) {
       const post = read(a);
       if (!post) continue;
@@ -311,6 +334,7 @@
     clearInterval(timer);
     host.remove();
     window.__shelfCollector = null;
+    chrome.runtime.sendMessage({ type: 'shelf-collect-close' }).catch(() => {}); // closed means closed: don't come back on the next page
   };
 
   window.__shelfCollector = { show: () => document.documentElement.append(host) };
