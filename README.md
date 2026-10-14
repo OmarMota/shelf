@@ -1,15 +1,16 @@
-# Shelf: the bookmark manager Dia doesn't have
+# Shelf: a visual bookmark manager for any Chromium browser
 
-**Dia has bookmarks, but no real place to manage them. Shelf is that place.**
+**Browsers save bookmarks, but give you no real place to manage them. Shelf is that place.**
 
 Shelf turns your bookmarks into a calm, visual canvas: every bookmark becomes a card with a live
 preview, folders open in place, and you organise everything by dragging. It talks to the browser's
-real bookmark store, so whatever you do in Shelf (rename, move, reorder, delete) is exactly what Dia's
-bookmarks bar shows, and the other way round. No sync service, no account, no copy of your data
+real bookmark store, so whatever you do in Shelf (rename, move, reorder, delete) is exactly what your
+browser's bookmarks bar shows, and the other way round. No sync service, no account, no copy of your data
 somewhere else.
 
-Built for [Dia](https://www.diabrowser.com/), and made of nothing but standard Chrome extension APIs,
-so it also runs in other Chromium browsers such as Chrome, Arc, Brave and Edge.
+It is made of nothing but standard Chrome extension APIs, so it runs in every Chromium browser:
+Chrome, [Dia](https://www.diabrowser.com/), Arc, Brave, Edge, Opera, Vivaldi and the others. Where the
+browser has its own bookmarks page, Shelf takes its place.
 
 ![Shelf preview](docs/preview.gif)
 
@@ -56,25 +57,32 @@ delete or move the folder, the extension disappears.
 Prefer git? `git clone https://github.com/OmarMota/shelf.git` and use the `extension/` folder.
 Updating is then just `git pull` and a click on the reload arrow.
 
-### 2. Load it in Dia
+### 2. Load it in your browser
 
-1. Open `dia://extensions`
-2. Turn on **Developer mode** (top right)
+1. Open the browser's extensions page:
+
+   | Browser | Address |
+   |---|---|
+   | Chrome | `chrome://extensions` |
+   | Dia | `dia://extensions` |
+   | Arc | *Extensions → Manage extensions* |
+   | Brave | `brave://extensions` |
+   | Edge | `edge://extensions` |
+   | Opera | `opera://extensions` |
+   | Vivaldi | `vivaldi://extensions` |
+
+2. Turn on **Developer mode**
 3. Click **Load unpacked** and choose the unzipped folder (or `extension/` if you cloned)
 4. Open it with the **Shelf** toolbar button, or `⌥⇧B`. It also registers itself as the
-   bookmarks page, so `dia://bookmarks` should open Shelf instead of the built-in manager.
+   bookmarks page, so the browser's own address for it (`chrome://bookmarks`, `dia://bookmarks`, …)
+   opens Shelf instead of the built-in manager.
 
 To update to a new release: download the new zip, replace the folder's contents, then hit the reload
-arrow on Shelf's card in `dia://extensions`. Your notes, previews and settings are kept.
+arrow on Shelf's card in the extensions page. Your notes, previews and settings are kept.
 
-### Chrome, Arc, Brave, Edge and other Chromium browsers
-
-Same steps, starting from the browser's extensions page (`chrome://extensions`,
-`brave://extensions`, `edge://extensions`; in Arc, *Extensions → Manage extensions*).
-Where the browser has its own bookmarks page (e.g. `chrome://bookmarks`), Shelf replaces it.
 In browsers without tab groups, **Open all as a tab group** falls back to plain tabs.
 
-> Shelf is developed and tested in Dia. It uses only standard Manifest V3 APIs, but if something
+> Shelf uses only standard Manifest V3 APIs and is developed mostly in Dia: if something
 > behaves differently in your browser, please [open an issue](../../issues).
 
 ## Using it
@@ -223,7 +231,7 @@ The full, precise list is in **[PRIVACY.md](PRIVACY.md)**.
 
 Shelf is a Manifest V3 extension. The browser's bookmark store is the source of truth: Shelf reads it
 through `chrome.bookmarks`, writes every change back through the same API, and listens to its events so
-edits made elsewhere (for example on Dia's bookmarks bar) appear right away.
+edits made elsewhere (for example on the browser's bookmarks bar) appear right away.
 
 ```
 extension/
@@ -257,7 +265,7 @@ No build step, no dependencies, no package manager: the `extension/` folder *is*
 
 1. Load it unpacked as described in [Install](#install).
 2. Edit any file.
-3. Hit the reload arrow on the Shelf card in `dia://extensions` (or your browser's extensions page),
+3. Hit the reload arrow on the Shelf card in your browser's extensions page,
    then reopen Shelf.
 
 To debug, right-click in Shelf → **Inspect**, or click **service worker** on the extension card for
